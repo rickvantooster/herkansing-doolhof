@@ -1,4 +1,21 @@
+/*
+helper macros
+*/
+
+//macro om in_array function makkelijker te maken.
 #define ARRAY_SIZEOF(x) sizeof(x)/sizeof(x[0])
+
+
+/*
+* pins voor peripherals.
+*/
+
+const int LINE_SENSOR_PINS[5] = {0};
+
+
+/*
+* waardes voor de lijn sensoren gegroepeerd op actie.
+*/
 
 const uint8_t VALUES_FORWARD[3] = {
 	0b11011,
@@ -22,7 +39,24 @@ const uint8_t VALUES_RIGHT[6] = {
 	0b01001
 };
 
+
+/*
+* overige variabelen.
+*/
 uint64_t time_since_start = 0;
+
+/*
+* utility functions
+*/
+
+bool in_array(uint8_t arr[], uint8_t value, size_t n){
+	for(size_t i = 0; i < n; i++){
+		if(arr[i] == value)
+			return true;
+	}
+
+	return false;
+}
 
 
 void setup() {
