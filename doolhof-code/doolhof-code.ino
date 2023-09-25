@@ -10,7 +10,7 @@ helper macros
 * pins voor peripherals.
 */
 
-const int LINE_SENSOR_PINS[5] = {0};
+const uint32_t LINE_SENSOR_PINS[5] = {0};
 
 
 /*
@@ -18,26 +18,28 @@ const int LINE_SENSOR_PINS[5] = {0};
 */
 
 const uint8_t VALUES_FORWARD[3] = {
-	0b11011,
-	0b01011,
-	0b11010
+	0b01011, // 11
+	0b11010, // 26
+	0b11011, //16+8+2+1 = 27
 };
 const uint8_t VALUES_LEFT[5] = {
-	0b00001,
-	0b00010,
-	0b00011,
-	0b10010,
-	0b10011,
+	0b00001, // 1
+	0b00010, // 2
+	0b00011, // 3
+	0b10010, // 18
+	0b10011, // 19
 };
 
 const uint8_t VALUES_RIGHT[6] = {
-	0b10001,
-	0b01000,
-	0b10000,
-	0b11000,
-	0b11001,
-	0b01001
+	0b01000, //8
+	0b01001, //9
+	0b10000, //16
+	0b10001, //17
+	0b11000, //24
+	0b11001, //25
 };
+
+const uint8_t VALUE_POSSIBLE_FINISH = 0b00000;
 
 
 /*
@@ -49,8 +51,24 @@ uint64_t time_since_start = 0;
 * utility functions
 */
 
-bool in_array(uint8_t arr[], uint8_t value, size_t n){
-	for(size_t i = 0; i < n; i++){
+bool in_array(uint8_t* arr, uint8_t value, size_t n){
+	size_t pivot = n / 2;
+	size_t i = 0;
+	size_t end = n;
+
+	if(arr[pivot] == value){
+		return true;
+	}
+
+	if(value < arr[pivot]){
+		end = pivot;
+	}else{
+		i = pivot;
+
+	}
+
+
+	for(i = 0; i < end; i++){
 		if(arr[i] == value)
 			return true;
 	}
@@ -58,9 +76,65 @@ bool in_array(uint8_t arr[], uint8_t value, size_t n){
 	return false;
 }
 
+/*
+* sensor gerelateerde functions.
+*/
+
+uint8_t get_line_sensor(){
+	uint8_t result = 0;
+	uint8_t idx = 4;
+	for(size_t i = 0; i < 5; i++){
+		result |= ((uint8_t)digitalRead(LINE_SENSOR_PINS[i]) << idx);
+		idx--;
+
+	}
+	return result;
+
+}
+
+/*
+* motor related functions
+*/
+
+void forward(){
+}
+
+void right(){
+}
+
+void left(){
+}
+
+void uturn(){
+}
+
+void finish(){
+}
 
 void setup() {
+	Serial.begin(9600);
 }
 
 void loop() {
+	uint8_t line = get_line_sensor();
+	if(line == VALUE_POSSIBLE_FINISH){
+		forward();
+		if(get_line_sensor() == VALUE_POSSIBLE_FINISH){
+			finish();
+		}
+	}else if(in_array(VALUES_RIGHT, line, ARRAY_SIZEOF(VALUES_RIGHT))){
+		right();
+
+	}else if(in_array(VALUES_LEFT, line, ARRAY_SIZEOF(VALUES_LEFT))){
+		left();
+
+	}else if(in_array(VALUES_FORWARD, line, ARRAY_SIZEOF(VALUES_FORWARD))){
+		forward();
+		return; // Uitzoeken of dit nodig is.
+	}else{
+		uturn();
+	}
+	forward();
+
+	
 }
