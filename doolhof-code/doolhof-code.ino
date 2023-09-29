@@ -46,6 +46,7 @@ const uint8_t VALUE_POSSIBLE_FINISH = 0b00000;
 * overige variabelen.
 */
 uint64_t time_since_start = 0;
+int speed = 30; //exact value tbd later
 
 /*
 * utility functions
@@ -97,18 +98,43 @@ uint8_t get_line_sensor(){
 */
 
 void forward(){
+  digitalWrite(12, HIGH);
+  digitalWrite(13, HIGH);
+  analogWrite(3, speed);
+  analogWrite(11, speed);
+}
+
+void backward(){
+  digitalWrite(12, LOW);
+  digitalWrite(13, LOW);
+  analogWrite(3, speed);
+  analogWrite(11, speed);
 }
 
 void right(){
+  digitalWrite(12, HIGH);
+  digitalWrite(13, HIGH);
+  analogWrite(3, 0);
+  analogWrite(11, speed);
 }
 
 void left(){
+  digitalWrite(12, HIGH);
+  digitalWrite(13, HIGH);
+  analogWrite(3, speed);
+  analogWrite(11, 0);
 }
 
 void uturn(){
+  digitalWrite(12, HIGH);
+  digitalWrite(13, LOW);
+  analogWrite(3, speed);
+  analogWrite(11, speed);
+  // een methode om te timen dat hij precies 180 graden draait?
 }
 
-void finish(){
+void checkFinish(){
+  
 }
 
 void setup() {
@@ -118,10 +144,7 @@ void setup() {
 void loop() {
 	uint8_t line = get_line_sensor();
 	if(line == VALUE_POSSIBLE_FINISH){
-		forward();
-		if(get_line_sensor() == VALUE_POSSIBLE_FINISH){
-			finish();
-		}
+		checkFinish()
 	}else if(in_array(VALUES_RIGHT, line, ARRAY_SIZEOF(VALUES_RIGHT))){
 		right();
 
