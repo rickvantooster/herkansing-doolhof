@@ -58,11 +58,8 @@ const uint8_t VALUE_POSSIBLE_FINISH = 0b00000;
 * overige variabelen.
 */
 uint64_t time_since_start = 0;
-<<<<<<< HEAD
 int speed = 30; //exact value tbd later
-=======
 NewPing sonar(PING_TRIGGER, PING_ECHO, 30);
->>>>>>> c94ef9a30bd45a02ade555926ca987b3fe2dbe9b
 
 /*
 * utility functions
