@@ -8,8 +8,21 @@ helper macros
 /*
 * constants om bepaalde acties vertduidelijken.
 */
+
 const bool ROTATE_CLOCKWISE = false;
 const bool ROTATE_COUNTER_CLOCKWISE = true;
+
+/*
+* status gerelateerde waardes.
+*/
+enum robot_state{
+	STARTUP_COUNTDOWN,
+	PRE_DRIVING,
+	DRIVING,
+	FINISH_BLINK,
+	FINISH
+
+};
 
 /*
 * pins voor peripherals.
@@ -75,21 +88,30 @@ const bool SEGMENT_NUMERIC[10][8] = {
 };
 
 // 7-segment waardes voor de te gebruiken letters.
-const bool SEGMENT_LETTERS[4][8] = {
+const bool SEGMENT_LETTERS[5][8] = {
+	//a,b,c,d,e,f,g
 	{1,0,0,0,1,1,1}, //F
 	{0,0,0,0,1,1,0}, //I
 	{1,0,1,1,0,1,1}, //S
 	{0,0,0,1,1,1,1}, //t
+	{1,1,0,1,0,1,0} // m
 
-}
+};
 
 /*
 * overige variabelen.
 */
-uint64_t time_since_start = 0;
+
+uint64_t countdown_time = 0;
 int speed = 40; //exact value tbd later
 NewPing sonar(PING_TRIGGER, PING_ECHO, 30);
 uint8_t last_found_line = 0;
+uint8_t state = STARTUP_COUNTDOWN;
+uint8_t countdown_step = 10;
+uint32_t start_time_driving = 0;
+bool display_on = true;
+uint8_t finish_blink_remaining = 6;
+uint32_t time_to_finish = 0;
 
 /*
 * utility functions
@@ -120,6 +142,19 @@ bool in_array(uint8_t* arr, uint8_t value, size_t n){
 	return false;
 }
 
+uint32_t digit_count(uint32_t input){
+	uint32_t count = 0;
+	uint32_t n = input;
+	while(n != 0){
+		n /= 10;
+		count++;
+
+	}
+
+	return count;
+
+}
+
 /*
 * Pin setup functions.
 */
@@ -147,6 +182,7 @@ void motors_init(){
 	//pinMode(3, OUTPUT);
 	//pinMode(11, OUTPUT);
 }
+
 
 /*
 * sensor gerelateerde functions.
@@ -177,6 +213,75 @@ uint32_t ping_distance(){
 	Serial.println("cm");
 
 	return result;
+}
+
+/*
+* 7-segment gerelateerde functions
+*/
+
+
+void display_set_digits(uint8_t digit1, uint8_t digit2){
+	const bool* display1_values = SEGMENT_NUMERIC[digit1];
+	const bool* display2_values = SEGMENT_LETTERS[digit2];
+	display_show(display1_values, display2_values);
+}
+
+uint8_t display_get_letter_idx(char c){
+	uint8_t result = 0;
+	switch(c) {
+		case 'F':
+			result = 0;
+			break;
+		case 'I':
+			result = 1;
+			break;
+
+		case 'S':
+			result = 2;
+			break;
+		case 't':
+			result = 3;
+			break;
+		case 'm':
+			result = 4;
+			break;
+	};
+	return result;
+
+}
+
+void display_set_letters(char char1, char char2){
+	const bool* display1_values = SEGMENT_LETTERS[display_get_letter_idx(char1)];
+	const bool* display2_values = SEGMENT_LETTERS[display_get_letter_idx(char2)];
+	display_show(display1_values, display2_values);
+}
+
+void display_show(const bool* segments1, const bool* segments2){
+	//nog implementeren.
+}
+
+void display_show_drive_time(){
+	if(state == DRIVING){
+		uint32_t delta_t = (millis() - start_time_driving) / 1000;
+		time_to_finish = delta_t;
+
+	}
+	uint32_t temp_time = time_to_finish;
+	uint8_t digits = digit_count(time_to_finish);
+	//Wanneer er meer dan 99 seconden zijn tonen we het aantal minuten.
+	if(digits > 2){
+		temp_time /= 60;
+		const bool* display1_values = SEGMENT_NUMERIC[temp_time % 10];
+		const bool* display2_values = SEGMENT_LETTERS[display_get_letter_idx('m')];
+		display_show(display1_values, display2_values);
+	}else{
+		const bool* display2_values = SEGMENT_NUMERIC[temp_time % 10];
+		temp_time /= 10;
+		const bool* display1_values = SEGMENT_NUMERIC[temp_time % 10];
+		display_show(display1_values, display2_values);
+	}
+
+
 }
 
 
@@ -224,23 +329,36 @@ void uturn(){
 void check_finish(){
 	forward();
 	if(get_line_sensor() != VALUE_POSSIBLE_FINISH){
-		uturn();
+		backward();
 		return;
 	}
+	state = FINISH_BLINK;
 	//einde doolhof
 }
 
-void setup() {
-	Serial.begin(9600);
-	linsensor_init();
-	segment_display_init();
-	motors_init();
+/*
+* State gerelateerde functions
+*/
+
+void state_startup_count(){
+	if(millis() - countdown_time >= 1000){
+		if(countdown_step == 10){
+			display_set_digits(1, 0);
+		}else if(countdown_step == 0){
+			display_set_letters('S', 't');
+			state = PRE_DRIVING;
+		}else{
+			display_set_digits(0, countdown_step);
+		}
+		countdown_step--;
+		countdown_time = millis();
+	}
 }
 
-void loop() {
+void state_driving(){
 	uint32_t distance = ping_distance();
-
 	uint8_t line = get_line_sensor();
+	display_show_drive_time();
 	if(distance > 0 && 8 <= distance){
 		uturn();
 
@@ -259,6 +377,49 @@ void loop() {
 		uturn();
 	}
 	forward();
-	//backward();
+
+}
+
+void state_finish(){
+	if(millis() - countdown_time >= 1000){
+		if(finish_blink_remaining % 2 == 0){
+			//TODO: display clearen.
+			if(finish_blink_remaining == 0){
+				state = FINISH;
+			}
+		}else{
+			display_show_drive_time();
+		}
+		finish_blink_remaining--;
+		countdown_time = millis();
+
+	}
+}
+
+
+void setup() {
+	Serial.begin(9600);
+	linsensor_init();
+	segment_display_init();
+	motors_init();
+	state = STARTUP_COUNTDOWN;
+}
+
+void loop() {
+	if (state == STARTUP_COUNTDOWN) {
+		state_startup_count();
+	}else if(state == PRE_DRIVING && millis() - countdown_time >= 1000){
+		state = DRIVING;
+		start_time_driving = millis();
+	}else if(state == DRIVING){
+		state_driving();
+	}else if(state == FINISH){
+		state_finish();
+	}else if(state == FINISH){
+		if(millis() - countdown_time >= 1000){
+			display_set_letters('F', 'I');
+		}
+	}
+
 	
 }
