@@ -39,3 +39,8 @@ uint32_t ping_distance(){
 
 	return result;
 }
+
+uint8_t get_middle_value(){
+	return (uint8_t)digitalRead(LINE_SENSOR_PINS[2]);
+
+}

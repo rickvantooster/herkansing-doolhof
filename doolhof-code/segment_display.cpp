@@ -11,21 +11,22 @@ extern uint32_t start_time_driving;
 extern uint32_t finish_time;
 
 // 7-segment waardes voor alle cijfers.
-const bool SEGMENT_NUMERIC[10][8] = {
-	{1,1,1,1,1,1,0},
-	{0,1,1,0,0,0,0},
-	{1,1,0,1,1,0,1},
-	{1,1,1,1,0,0,1},
-	{0,1,1,0,0,1,1},
-	{1,0,1,1,0,1,1},
-	{1,0,1,1,1,1,1},
-	{1,1,1,0,0,0,0},
-	{1,1,1,1,1,1,1},
-	{1,1,1,1,0,0,1}
+const bool SEGMENT_NUMERIC[10][7] = {
+	//a,b,c,d,e,f,g
+	{1,1,1,1,1,1,0}, // 0
+	{0,1,1,0,0,0,0}, // 1
+	{1,1,0,1,1,0,1}, // 2
+	{1,1,1,1,0,0,1}, // 3
+	{0,1,1,0,0,1,1}, // 4
+	{1,0,1,1,0,1,1}, // 5
+	{1,0,1,1,1,1,1}, // 6
+	{1,1,1,0,0,0,0}, // 7
+	{1,1,1,1,1,1,1}, // 8
+	{1,1,1,1,0,1,1}  // 9
 };
 
 // 7-segment waardes voor de te gebruiken letters.
-const bool SEGMENT_LETTERS[5][8] = {
+const bool SEGMENT_LETTERS[5][7] = {
 	//a,b,c,d,e,f,g
 	{1,0,0,0,1,1,1}, //F
 	{0,0,0,0,1,1,0}, //I
@@ -35,11 +36,31 @@ const bool SEGMENT_LETTERS[5][8] = {
 
 };
 
+
 void display_show(const bool* segments1, const bool* segments2){
 	//nog implementeren.
+	digitalWrite(SEGMENT_U1, LOW);
+	//display_clear();
+	if(segments1 != NULL){
+		for(size_t i = 0; i < 7; i++){
+			digitalWrite(SEGMENT_PINS[i], segments1[i]);
+
+		}
+
+	}
+	if(segments2 != NULL){
+		for(size_t i = 0; i < 7; i++){
+			digitalWrite(SEGMENT_PINS[i], segments1[i]);
+
+		}
+
+	}
 }
 
+
+
 void display_clear(){
+	display_show(NULL, NULL);
 
 }
 

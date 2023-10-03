@@ -6,5 +6,5 @@ build:
 upload:
 	~/local/bin/arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:uno doolhof-code
 console:
-	 minicom -b 9600 -D /dev/ttyACM0
+	 minicom -b 9600 -C output.log -D /dev/ttyACM0
 
