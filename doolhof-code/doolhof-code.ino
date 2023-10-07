@@ -10,8 +10,15 @@
 
 const bool ROTATE_CLOCKWISE = false;
 const bool ROTATE_COUNTER_CLOCKWISE = true;
-const int SPEED = 40; //exact value tbd later
+const int SPEED = 45; //exact value tbd later
 const int SPEED_OPOSITE = 30; //exact value tbd later
+
+enum cached_direction{
+	FORWARD,
+	RIGHT,
+	LEFT,
+
+};
 
 /*
 * pins voor motors.
@@ -54,6 +61,7 @@ const uint8_t VALUES_RIGHT[] = {
 };
 
 const uint8_t VALUE_POSSIBLE_FINISH = 0b00000;
+const uint8_t VALUE_UTURN = 0b11111;
 
 
 /*
@@ -96,32 +104,58 @@ void backward(){
   analogWrite(SPEED_RIGHT, SPEED);
 }
 
+
 void right(){
-  digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
+  digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
   digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
-  analogWrite(SPEED_LEFT, 0);
+  analogWrite(SPEED_LEFT, SPEED);
   analogWrite(SPEED_RIGHT, SPEED);
 }
 
 void left(){
-  digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
+  digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
   digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
   analogWrite(SPEED_LEFT, SPEED);
   analogWrite(SPEED_RIGHT, 0);
 }
+void stop(){
+  analogWrite(SPEED_LEFT, 0);
+  analogWrite(SPEED_RIGHT, 0);
 
+}
+
+void turn_right(){
+	// een methode om te timen dat hij precies 180 graden draait?
+	right();
+	while(get_middle_value() != 0){
+		right();
+
+	}
+	stop();
+
+}
+
+void turn_left(){
+	// een methode om te timen dat hij precies 180 graden draait?
+	left();
+	while(get_middle_value() != 0){
+		left();
+
+	}
+	stop();
+
+}
 void uturn(){
-  // een methode om te timen dat hij precies 180 graden draait?
+	// een methode om te timen dat hij precies 180 graden draait?
 	while(get_middle_value() != 0){
 		digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
 		digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
-		analogWrite(SPEED_LEFT, SPEED_OPOSITE);
+		analogWrite(SPEED_LEFT, SPEED);
 		analogWrite(SPEED_RIGHT, SPEED);
 
 	}
 
-	analogWrite(SPEED_LEFT, 0);
-	analogWrite(SPEED_RIGHT, 0);
+	stop();
 }
   
 void check_finish(){
@@ -175,24 +209,31 @@ void state_pre_driving(){
 void state_driving(){
 	uint32_t distance = ping_distance();
 	uint8_t line = get_line_sensor();
-	display_show_drive_time();
-	if(distance > 0 && 8 <= distance){
+	//display_show_drive_time();
+	if(distance > 0 && distance >= 8){
 		uturn();
-	}else if(line == VALUE_POSSIBLE_FINISH){
-		check_finish();
 	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
+		//display_set_digits(0, 0);
 		right();
 
 	}else if(in_array(VALUES_FORWARD, line, SIZEOF_ARRAY(VALUES_FORWARD))){
+		//display_set_digits(1, 0);
 		forward();
-		return; // Uitzoeken of dit nodig is.
+
+	}else if(line == VALUE_POSSIBLE_FINISH){
+		check_finish();
+	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
+		//display_set_digits(0, 0);
+		right();
 
 	}else if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
+		//display_set_digits(2, 0);
 		left();
 	}else{
+		//display_set_digits(3, 0);
 		uturn();
 	}
-	forward();
+	//forward();
 
 }
 
@@ -219,14 +260,25 @@ void state_finish(){
 
 
 void setup() {
-	Serial.begin(9600);
+	//Serial.begin(9600);
 	linsensor_init();
-	segment_display_init();
+	//segment_display_init();
 	motors_init();
-	state = STARTUP_COUNTDOWN;
+	state = PRE_DRIVING;
 }
 
 void loop() {
+	/*
+	uint32_t distance = ping_distance();
+	uint8_t line = get_line_sensor();
+	if(line == VALUE_UTURN){
+		stop();
+	}else{
+		forward();
+
+	}
+	*/
+
 	switch(state){
 		case STARTUP_COUNTDOWN:
 			state_startup_count();
