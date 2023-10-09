@@ -209,7 +209,7 @@ void loop() {
 		forward();
 
 	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
-		turn_right();
+		right();
 		//right();
 
 	}else if(in_array(VALUES_FORWARD, line, SIZEOF_ARRAY(VALUES_FORWARD))){

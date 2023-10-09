@@ -17,14 +17,11 @@ void linsensor_init(){
 uint8_t get_line_sensor(){
 	uint8_t result = 0;
 	uint8_t idx = 4;
-	Serial.print("[Line sensor] value = ");
 	for(size_t i = 0; i < 5; i++){
 		result |= ((uint8_t)digitalRead(LINE_SENSOR_PINS[i]) << idx);
 		idx--;
-		Serial.print(digitalRead(LINE_SENSOR_PINS[i]));
 
 	}
-	Serial.println();
 	//Serial.print("[Line sensor] value = ");
 	//Serial.println(result);
 	return result;
@@ -42,5 +39,13 @@ uint32_t ping_distance(){
 
 uint8_t get_middle_value(){
 	return (uint8_t)digitalRead(LINE_SENSOR_PINS[2]);
+
+}
+uint8_t get_right_value(){
+	return (uint8_t)digitalRead(LINE_SENSOR_PINS[4]);
+
+}
+uint8_t get_left_value(){
+	return (uint8_t)digitalRead(LINE_SENSOR_PINS[0]);
 
 }

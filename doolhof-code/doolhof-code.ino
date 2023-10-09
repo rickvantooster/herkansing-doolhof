@@ -10,21 +10,24 @@
 
 const bool ROTATE_CLOCKWISE = false;
 const bool ROTATE_COUNTER_CLOCKWISE = true;
-const int SPEED = 45; //exact value tbd later
+const int SPEED = 40; //exact value tbd later
+const int TURN_SPEED = 30; //exact value tbd later
 const int SPEED_OPOSITE = 30; //exact value tbd later
+const int TURN_TIME = 1000; // tijd nodig voor een 90 graden draai.
+//const int TURN_TIME = 10000; // tijd nodig voor een 90 graden draai.
 
-enum cached_direction{
-	FORWARD,
+enum turn_state_t {
+	IDLE,
 	RIGHT,
 	LEFT,
+	UTURN
 
 };
+
 
 /*
 * pins voor motors.
 */
-
-
 
 const uint32_t MOTOR_LEFT = 12;
 const uint32_t MOTOR_RIGHT = 13;
@@ -76,6 +79,8 @@ uint32_t start_time_driving = 0;
 bool display_on = true;
 uint8_t finish_blink_remaining = 6;
 uint32_t finish_time = 0;
+uint32_t start_of_turn = 0;
+uint8_t turn_state = IDLE;
 
 
 
@@ -106,15 +111,19 @@ void backward(){
 
 
 void right(){
-  digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
-  digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
-  analogWrite(SPEED_LEFT, SPEED);
+	turn_state = RIGHT;
+	start_of_turn = millis();
+  digitalWrite(MOTOR_LEFT, HIGH);
+  digitalWrite(MOTOR_RIGHT, HIGH);
+  analogWrite(SPEED_LEFT, 0);
   analogWrite(SPEED_RIGHT, SPEED);
 }
 
 void left(){
-  digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
-  digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
+	turn_state = LEFT;
+	start_of_turn = millis();
+  digitalWrite(MOTOR_LEFT, LOW);
+  digitalWrite(MOTOR_RIGHT, LOW);
   analogWrite(SPEED_LEFT, SPEED);
   analogWrite(SPEED_RIGHT, 0);
 }
@@ -125,13 +134,12 @@ void stop(){
 }
 
 void turn_right(){
-	// een methode om te timen dat hij precies 180 graden draait?
-	right();
-	while(get_middle_value() != 0){
-		right();
+	  digitalWrite(MOTOR_LEFT, HIGH);
+	  digitalWrite(MOTOR_RIGHT, HIGH);
+	  analogWrite(SPEED_LEFT, 0);
+	  analogWrite(SPEED_RIGHT, TURN_SPEED);
+	while(get_line_sensor() != 0b11011);
 
-	}
-	stop();
 
 }
 
@@ -150,8 +158,8 @@ void uturn(){
 	while(get_middle_value() != 0){
 		digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
 		digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
-		analogWrite(SPEED_LEFT, SPEED);
-		analogWrite(SPEED_RIGHT, SPEED);
+		analogWrite(SPEED_LEFT, TURN_SPEED);
+		analogWrite(SPEED_RIGHT, TURN_SPEED);
 
 	}
 
@@ -212,8 +220,28 @@ void state_driving(){
 	//display_show_drive_time();
 	if(distance > 0 && distance >= 8){
 		uturn();
-	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
-		//display_set_digits(0, 0);
+	}else if(turn_state != IDLE){
+		switch(turn_state){
+			case RIGHT:
+			case LEFT:
+				if((millis() - start_of_turn) >= TURN_TIME){
+					turn_state = IDLE;
+					stop();
+				}
+				break;
+			case UTURN:
+				if((millis() - start_of_turn) >= (TURN_TIME * 2)){
+					turn_state = IDLE;
+					stop();
+				}
+				break;
+
+		}
+
+		return;
+	}
+
+	if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
 		right();
 
 	}else if(in_array(VALUES_FORWARD, line, SIZEOF_ARRAY(VALUES_FORWARD))){
@@ -221,14 +249,10 @@ void state_driving(){
 		forward();
 
 	}else if(line == VALUE_POSSIBLE_FINISH){
-		check_finish();
-	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
-		//display_set_digits(0, 0);
-		right();
-
+		//check_finish();
 	}else if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
-		//display_set_digits(2, 0);
 		left();
+		//while(!get_middle_value());
 	}else{
 		//display_set_digits(3, 0);
 		uturn();
@@ -266,18 +290,34 @@ void setup() {
 	motors_init();
 	state = PRE_DRIVING;
 }
-
+bool first_turn = false;
 void loop() {
+	uint8_t line = get_line_sensor();
+	if(first_turn){
+		return;
+
+	}
+	if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
+		turn_right();
+
+	}else if(in_array(VALUES_FORWARD, line, SIZEOF_ARRAY(VALUES_FORWARD))){
+		forward();
+
+	}else if(line == VALUE_POSSIBLE_FINISH){
+		stop();
+	}else if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
+		left();
+	}else{
+		uturn();
+	}
 	/*
 	uint32_t distance = ping_distance();
-	uint8_t line = get_line_sensor();
 	if(line == VALUE_UTURN){
 		stop();
 	}else{
 		forward();
 
 	}
-	*/
 
 	switch(state){
 		case STARTUP_COUNTDOWN:
@@ -300,5 +340,6 @@ void loop() {
 			delay(10000);
 			break;
 	}
+	*/
 	
 }
