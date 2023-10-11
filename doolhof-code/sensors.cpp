@@ -22,19 +22,12 @@ uint8_t get_line_sensor(){
 		idx--;
 
 	}
-	//Serial.print("[Line sensor] value = ");
-	//Serial.println(result);
 	return result;
 
 }
 
 uint32_t ping_distance(){
-	uint32_t result = sonar.ping_cm(30); 
-	Serial.print("[Ping sensor] distance = ");
-	Serial.print(result); 
-	Serial.println("cm");
-
-	return result;
+	return sonar.ping_cm(30); 
 }
 
 uint8_t get_middle_value(){

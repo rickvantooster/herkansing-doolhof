@@ -76,7 +76,7 @@ void segment_display_init(){
 void display_set_digits(uint8_t digit1, uint8_t digit2){
 	const bool* display1_values = SEGMENT_NUMERIC[digit1];
 	const bool* display2_values = SEGMENT_LETTERS[digit2];
-	//display_show(display1_values, display2_values);
+	display_show(display1_values, display2_values);
 }
 
 uint8_t display_get_letter_idx(char c){
@@ -106,7 +106,7 @@ uint8_t display_get_letter_idx(char c){
 void display_set_letters(char char1, char char2){
 	const bool* display1_values = SEGMENT_LETTERS[display_get_letter_idx(char1)];
 	const bool* display2_values = SEGMENT_LETTERS[display_get_letter_idx(char2)];
-	//display_show(display1_values, display2_values);
+	display_show(display1_values, display2_values);
 }
 
 
@@ -145,5 +145,19 @@ void display_show_drive_time(){
 		display_show(display1_values, display2_values);
 	}
 
+
+}
+
+void display_line_num(uint8_t value){
+	if(digit_count(value) == 1){
+		display_set_digits(value, 0);
+	}else{
+		uint8_t temp_value = value;
+		const bool* display2_values = SEGMENT_NUMERIC[temp_value % 10];
+		temp_value /= 10;
+		const bool* display1_values = SEGMENT_NUMERIC[temp_value % 10];
+		display_show(display1_values, display2_values);
+
+	}
 
 }

@@ -14,4 +14,5 @@ void display_clear();
 uint8_t digit_count(uint32_t input);
 
 void display_show_drive_time();
+void display_line_num(uint8_t value);
 #endif

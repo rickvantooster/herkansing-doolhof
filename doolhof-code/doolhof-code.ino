@@ -11,7 +11,7 @@
 const bool ROTATE_CLOCKWISE = false;
 const bool ROTATE_COUNTER_CLOCKWISE = true;
 const int SPEED = 40; //exact value tbd later
-const int TURN_SPEED = 30; //exact value tbd later
+const int TURN_SPEED = 35; //exact value tbd later
 const int SPEED_OPOSITE = 30; //exact value tbd later
 const int TURN_TIME = 1000; // tijd nodig voor een 90 graden draai.
 //const int TURN_TIME = 10000; // tijd nodig voor een 90 graden draai.
@@ -29,11 +29,11 @@ enum turn_state_t {
 * pins voor motors.
 */
 
-const uint32_t MOTOR_LEFT = 12;
-const uint32_t MOTOR_RIGHT = 13;
+const uint32_t MOTOR_LEFT = 13;
+const uint32_t MOTOR_RIGHT = 12;
 
-const uint32_t SPEED_LEFT = 3;
-const uint32_t SPEED_RIGHT = 11;
+const uint32_t SPEED_LEFT = 11;
+const uint32_t SPEED_RIGHT = 3;
 
 
 /*
@@ -96,85 +96,62 @@ void motors_init(){
 }
 
 void forward(){
-  digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
-  digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
+  digitalWrite(MOTOR_LEFT, HIGH);
   analogWrite(SPEED_LEFT, SPEED);
+  digitalWrite(MOTOR_RIGHT, LOW);
   analogWrite(SPEED_RIGHT, SPEED);
 }
 
 void backward(){
-  digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
-  digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
-  analogWrite(SPEED_LEFT, SPEED);
-  analogWrite(SPEED_RIGHT, SPEED);
-}
-
-
-void right(){
-	turn_state = RIGHT;
-	start_of_turn = millis();
-  digitalWrite(MOTOR_LEFT, HIGH);
-  digitalWrite(MOTOR_RIGHT, HIGH);
-  analogWrite(SPEED_LEFT, 0);
-  analogWrite(SPEED_RIGHT, SPEED);
-}
-
-void left(){
-	turn_state = LEFT;
-	start_of_turn = millis();
   digitalWrite(MOTOR_LEFT, LOW);
-  digitalWrite(MOTOR_RIGHT, LOW);
+  digitalWrite(MOTOR_RIGHT, HIGH);
   analogWrite(SPEED_LEFT, SPEED);
-  analogWrite(SPEED_RIGHT, 0);
+  analogWrite(SPEED_RIGHT, SPEED);
 }
+
+
 void stop(){
   analogWrite(SPEED_LEFT, 0);
   analogWrite(SPEED_RIGHT, 0);
 
 }
 
-void turn_right(){
-	  digitalWrite(MOTOR_LEFT, HIGH);
-	  digitalWrite(MOTOR_RIGHT, HIGH);
-	  analogWrite(SPEED_LEFT, 0);
-	  analogWrite(SPEED_RIGHT, TURN_SPEED);
+void right(){
+	digitalWrite(MOTOR_LEFT, HIGH);
+	digitalWrite(MOTOR_RIGHT, HIGH);
+	analogWrite(SPEED_LEFT, TURN_SPEED);
+	analogWrite(SPEED_RIGHT, 0);
 	while(get_line_sensor() != 0b11011);
 
 
 }
 
-void turn_left(){
-	// een methode om te timen dat hij precies 180 graden draait?
-	left();
-	while(get_middle_value() != 0){
-		left();
-
-	}
-	stop();
+void left(){
+	digitalWrite(MOTOR_LEFT, LOW);
+	digitalWrite(MOTOR_RIGHT, LOW);
+	analogWrite(SPEED_LEFT, 0);
+	analogWrite(SPEED_RIGHT, TURN_SPEED);
+	while(get_line_sensor() != 0b11011);
 
 }
 void uturn(){
-	// een methode om te timen dat hij precies 180 graden draait?
-	while(get_middle_value() != 0){
-		digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
-		digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
-		analogWrite(SPEED_LEFT, TURN_SPEED);
-		analogWrite(SPEED_RIGHT, TURN_SPEED);
-
-	}
-
-	stop();
+	  digitalWrite(MOTOR_LEFT, HIGH);
+	  digitalWrite(MOTOR_RIGHT, HIGH);
+	  analogWrite(SPEED_LEFT, SPEED);
+	  analogWrite(SPEED_RIGHT, SPEED);
+	while(get_line_sensor() != 0b11011);
 }
   
-void check_finish(){
+bool check_finish(){
 	forward();
-	analogWrite(SPEED_LEFT, 0);
-	analogWrite(SPEED_RIGHT, 0);
 	if(get_line_sensor() != VALUE_POSSIBLE_FINISH){
 		backward();
-		return;
+		right();
+		return false;
 	}
-	state = 127;
+	state = FINISH_BLINK;
+	stop();
+	return true;
 	//einde doolhof
 }
 
@@ -193,8 +170,6 @@ void state_startup_count(){
 		return;
 
 	}
-	Serial.print("[countdown] value = ");
-	Serial.println(countdown_val);
 	if(countdown_val == 0){
 		//display_set_digits(0, 0);
 		display_set_letters('S', 't');
@@ -217,45 +192,27 @@ void state_pre_driving(){
 void state_driving(){
 	uint32_t distance = ping_distance();
 	uint8_t line = get_line_sensor();
-	//display_show_drive_time();
+	display_line_num(line);
 	if(distance > 0 && distance >= 8){
-		uturn();
-	}else if(turn_state != IDLE){
-		switch(turn_state){
-			case RIGHT:
-			case LEFT:
-				if((millis() - start_of_turn) >= TURN_TIME){
-					turn_state = IDLE;
-					stop();
-				}
-				break;
-			case UTURN:
-				if((millis() - start_of_turn) >= (TURN_TIME * 2)){
-					turn_state = IDLE;
-					stop();
-				}
-				break;
-
-		}
-
-		return;
-	}
-
-	if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
+		stop();
+	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
 		right();
 
 	}else if(in_array(VALUES_FORWARD, line, SIZEOF_ARRAY(VALUES_FORWARD))){
-		//display_set_digits(1, 0);
 		forward();
 
 	}else if(line == VALUE_POSSIBLE_FINISH){
-		//check_finish();
+		/*
+		if(check_finish()){
+			stop();
+			return;
+
+		}
+		*/
 	}else if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
 		left();
-		//while(!get_middle_value());
 	}else{
-		//display_set_digits(3, 0);
-		uturn();
+		stop();
 	}
 	//forward();
 
@@ -277,6 +234,7 @@ void state_finish_blinking(){
 	}
 }
 void state_finish(){
+	stop();
 	if(millis() - countdown_time >= 1000){
 		display_set_letters('F', 'I');
 	}
@@ -286,38 +244,13 @@ void state_finish(){
 void setup() {
 	//Serial.begin(9600);
 	linsensor_init();
-	//segment_display_init();
+	segment_display_init();
 	motors_init();
 	state = PRE_DRIVING;
 }
-bool first_turn = false;
+
+
 void loop() {
-	uint8_t line = get_line_sensor();
-	if(first_turn){
-		return;
-
-	}
-	if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
-		turn_right();
-
-	}else if(in_array(VALUES_FORWARD, line, SIZEOF_ARRAY(VALUES_FORWARD))){
-		forward();
-
-	}else if(line == VALUE_POSSIBLE_FINISH){
-		stop();
-	}else if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
-		left();
-	}else{
-		uturn();
-	}
-	/*
-	uint32_t distance = ping_distance();
-	if(line == VALUE_UTURN){
-		stop();
-	}else{
-		forward();
-
-	}
 
 	switch(state){
 		case STARTUP_COUNTDOWN:
@@ -336,10 +269,7 @@ void loop() {
 			state_finish();
 			break;
 		default: //tijdelijk om display te testen.
-			Serial.println("[state] non valid state");
-			delay(10000);
 			break;
 	}
-	*/
 	
 }
