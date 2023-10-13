@@ -11,18 +11,7 @@
 const bool ROTATE_CLOCKWISE = false;
 const bool ROTATE_COUNTER_CLOCKWISE = true;
 const int SPEED = 40; //exact value tbd later
-const int TURN_SPEED = 35; //exact value tbd later
-const int SPEED_OPOSITE = 30; //exact value tbd later
-const int TURN_TIME = 1000; // tijd nodig voor een 90 graden draai.
-//const int TURN_TIME = 10000; // tijd nodig voor een 90 graden draai.
-
-enum turn_state_t {
-	IDLE,
-	RIGHT,
-	LEFT,
-	UTURN
-
-};
+const int TURN_SPEED = 30; //exact value tbd later
 
 
 /*
@@ -41,26 +30,26 @@ const uint32_t SPEED_RIGHT = 3;
 */
 
 const uint8_t VALUES_FORWARD[] = {
+	0b00011, // 3
 	0b01011, // 11
 	0b11010, // 26
 	0b11011, //16+8+2+1 = 27
 };
 
 const uint8_t VALUES_LEFT[] = {
-	0b00001, // 1
+	//0b00001, // 1
 	0b00010, // 2
-	0b00011, // 3
 	0b10010, // 18
 	0b10011, // 19
 };
 
 const uint8_t VALUES_RIGHT[] = {
 	0b01000, //8
-	0b01001, //9
+	//0b01001, //9
 	0b10000, //16
-	0b10001, //17
+	//0b10001, //17
 	0b11000, //24
-	0b11001, //25
+	//0b11001, //25
 };
 
 const uint8_t VALUE_POSSIBLE_FINISH = 0b00000;
@@ -79,8 +68,6 @@ uint32_t start_time_driving = 0;
 bool display_on = true;
 uint8_t finish_blink_remaining = 6;
 uint32_t finish_time = 0;
-uint32_t start_of_turn = 0;
-uint8_t turn_state = IDLE;
 
 
 
@@ -91,20 +78,21 @@ uint8_t turn_state = IDLE;
 
 void motors_init(){
 	TCCR2B = TCCR2B & B11111000 | B00000111; // for PWM frequency of 30.64 Hz
+
 	pinMode(MOTOR_LEFT, OUTPUT);
 	pinMode(MOTOR_RIGHT, OUTPUT);
 }
 
 void forward(){
-  digitalWrite(MOTOR_LEFT, HIGH);
+  digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
   analogWrite(SPEED_LEFT, SPEED);
-  digitalWrite(MOTOR_RIGHT, LOW);
+  digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
   analogWrite(SPEED_RIGHT, SPEED);
 }
 
 void backward(){
-  digitalWrite(MOTOR_LEFT, LOW);
-  digitalWrite(MOTOR_RIGHT, HIGH);
+  digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
+  digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
   analogWrite(SPEED_LEFT, SPEED);
   analogWrite(SPEED_RIGHT, SPEED);
 }
@@ -117,30 +105,35 @@ void stop(){
 }
 
 void right(){
-	digitalWrite(MOTOR_LEFT, HIGH);
-	digitalWrite(MOTOR_RIGHT, HIGH);
+	digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
+	digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
 	analogWrite(SPEED_LEFT, TURN_SPEED);
 	analogWrite(SPEED_RIGHT, 0);
-	while(get_line_sensor() != 0b11011);
+	uint8_t line = get_line_sensor();
+	while(line != 0b11011 && line != 0b00000){
+		line = get_line_sensor();
+
+	}
 
 
 }
 
 void left(){
-	digitalWrite(MOTOR_LEFT, LOW);
-	digitalWrite(MOTOR_RIGHT, LOW);
+	digitalWrite(MOTOR_LEFT, ROTATE_CLOCKWISE);
+	digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
 	analogWrite(SPEED_LEFT, 0);
 	analogWrite(SPEED_RIGHT, TURN_SPEED);
 	while(get_line_sensor() != 0b11011);
 
 }
 void uturn(){
-	  digitalWrite(MOTOR_LEFT, HIGH);
-	  digitalWrite(MOTOR_RIGHT, HIGH);
-	  analogWrite(SPEED_LEFT, SPEED);
-	  analogWrite(SPEED_RIGHT, SPEED);
+	  digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
+	  digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
+	  analogWrite(SPEED_LEFT, TURN_SPEED);
+	  analogWrite(SPEED_RIGHT, TURN_SPEED);
 	while(get_line_sensor() != 0b11011);
 }
+
   
 bool check_finish(){
 	forward();
@@ -193,26 +186,26 @@ void state_driving(){
 	uint32_t distance = ping_distance();
 	uint8_t line = get_line_sensor();
 	display_line_num(line);
-	if(distance > 0 && distance >= 8){
+	//(distance > 0 && distance <= 16) || 
+	if((distance > 0 && distance <= 16) || line == VALUE_UTURN){
+		uturn();
+	}else if(line == VALUE_POSSIBLE_FINISH){
+		//if(check_finish()){
+			//stop();
+			//return;
+
+		//}
+		state = FINISH_BLINK;
 		stop();
+		return;
 	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
 		right();
 
 	}else if(in_array(VALUES_FORWARD, line, SIZEOF_ARRAY(VALUES_FORWARD))){
 		forward();
 
-	}else if(line == VALUE_POSSIBLE_FINISH){
-		/*
-		if(check_finish()){
-			stop();
-			return;
-
-		}
-		*/
-	}else if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
+	}else  if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
 		left();
-	}else{
-		stop();
 	}
 	//forward();
 
