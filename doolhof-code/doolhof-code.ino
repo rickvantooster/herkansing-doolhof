@@ -10,8 +10,9 @@
 
 const bool ROTATE_CLOCKWISE = false;
 const bool ROTATE_COUNTER_CLOCKWISE = true;
-const int SPEED = 30; //exact value tbd later
-const int TURN_SPEED = 45; //exact value tbd later
+const int SPEED = 75; //exact value tbd later
+const int TURN_SPEED = 70; //exact value tbd later
+const int CHECK_FINISH_SPEED = 20;
 
 
 /*
@@ -40,13 +41,13 @@ const uint8_t VALUES_RIGHT[] = {
 	0b11001,
 	0b11100,
 	0b11101,
-	//0b11110 //TODO: testen zonder deze waarde
+	0b11110 //TODO: testen zonder deze waarde
 };
 const uint8_t VALUES_LEFT[] = {
 	0b10011, 
 	0b10111, 
 	0b00111,
-	//0b01111, //TODO: testen zonder deze waarde
+	0b01111, //TODO: testen zonder deze waarde
 };
 
 const uint8_t VALUE_POSSIBLE_FINISH = 0b00000;
@@ -107,15 +108,6 @@ void right(){
 	digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
 	analogWrite(SPEED_LEFT, TURN_SPEED);
 	analogWrite(SPEED_RIGHT, 0);
-	 //&& line != 0b00000
-	 /*
-	uint8_t line = get_line_sensor();
-
-	while(line != 0b11011){
-		line = get_line_sensor();
-
-	}
-	*/
 
 
 }
@@ -132,20 +124,23 @@ void left(){
 void uturn(){
 	digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
 	digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
-	analogWrite(SPEED_LEFT, TURN_SPEED);
-	analogWrite(SPEED_RIGHT, TURN_SPEED);
+	analogWrite(SPEED_LEFT, TURN_SPEED * 1.5);
+	analogWrite(SPEED_RIGHT, TURN_SPEED * 1.5);
 }
 
   
 bool check_finish(){
-	//forward();
-	delay(400); //TODO: validate travel time and maybe use millis() to be non blocking.
+	stop();
+	forward();
+	delay(150); 
+	stop();
+	delay(500);
 	if(get_line_sensor() != VALUE_POSSIBLE_FINISH){
 		backward();
-		delay(300); //TODO: validate travel time
-
+		delay(280); 
+		stop();
 		right();
-		delay(200);
+		delay(1000);
 		return false;
 	}
 	state = FINISH_BLINK;
