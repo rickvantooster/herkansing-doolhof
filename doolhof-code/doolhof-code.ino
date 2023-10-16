@@ -244,7 +244,7 @@ void setup() {
 
 
 void loop() {
-
+  display_control();
 	switch(state){
 		case STARTUP_COUNTDOWN:
 			state_startup_count();
