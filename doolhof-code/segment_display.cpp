@@ -9,7 +9,9 @@ const uint32_t SEGMENT_PINS[] = {1, 2, 4, 5, 6, 7, 8};
 extern uint8_t state;
 extern uint32_t start_time_driving;
 extern uint32_t finish_time;
-
+bool* display_1;
+bool* display_2;
+int current_display, display_timer;
 // 7-segment waardes voor alle cijfers.
 const bool SEGMENT_NUMERIC[10][7] = {
 	//a,b,c,d,e,f,g
@@ -26,47 +28,60 @@ const bool SEGMENT_NUMERIC[10][7] = {
 };
 
 // 7-segment waardes voor de te gebruiken letters.
-const bool SEGMENT_LETTERS[5][7] = {
+const bool SEGMENT_LETTERS[6][7] = {
 	//a,b,c,d,e,f,g
 	{1,0,0,0,1,1,1}, //F
 	{0,0,0,0,1,1,0}, //I
 	{1,0,1,1,0,1,1}, //S
 	{0,0,0,1,1,1,1}, //t
-	{1,1,0,1,0,1,0} // m
-
+	{1,1,0,1,0,1,0}, //m
+  {0,0,0,0,0,0,0}  // off
 };
 
 
-void display_show(const bool* segments1, const bool* segments2){
+void display_show(bool* segments){
 	//nog implementeren.
 	digitalWrite(SEGMENT_U1, LOW);
 	//display_clear();
-	if(segments1 != NULL){
+	if(segments != NULL){
 		for(size_t i = 0; i < 7; i++){
-			digitalWrite(SEGMENT_PINS[i], segments1[i]);
-
+			digitalWrite(SEGMENT_PINS[i], segments[i]);
 		}
-
 	}
-	if(segments2 != NULL){
-		for(size_t i = 0; i < 7; i++){
-			digitalWrite(SEGMENT_PINS[i], segments1[i]);
+}
 
-		}
-
-	}
+void display_control(){
+  if(millis() >= display_timer + 5){
+    if(current_display == 1){
+      digitalWrite(SEGMENT_U1, LOW);
+      digitalWrite(SEGMENT_U2, HIGH);
+      display_show(display_2);
+      current_display = 2;
+      display_timer = millis();
+    }else{
+      if(current_display == 2){
+        digitalWrite(SEGMENT_U1, HIGH);
+        digitalWrite(SEGMENT_U2, LOW);
+        display_show(display_1);
+        current_display = 1;
+        display_timer = millis();
+      }
+    }
+  }
 }
 
 
 
 void display_clear(){
-	display_show(NULL, NULL);
+	display_set_letters('O', 'O');
 
 }
 
 void segment_display_init(){
 	pinMode(SEGMENT_U1, OUTPUT);
 	pinMode(SEGMENT_U2, OUTPUT);
+  display_timer = millis();
+  current_display = 1;
 	for(size_t i = 0; i < SIZEOF_ARRAY(SEGMENT_PINS); i++){
 		pinMode(SEGMENT_PINS[i], OUTPUT);
 
@@ -74,9 +89,8 @@ void segment_display_init(){
 }
 
 void display_set_digits(uint8_t digit1, uint8_t digit2){
-	const bool* display1_values = SEGMENT_NUMERIC[digit1];
-	const bool* display2_values = SEGMENT_LETTERS[digit2];
-	display_show(display1_values, display2_values);
+	display_1 = SEGMENT_NUMERIC[digit1];
+	display_2 = SEGMENT_NUMERIC[digit2];
 }
 
 uint8_t display_get_letter_idx(char c){
@@ -88,7 +102,6 @@ uint8_t display_get_letter_idx(char c){
 		case 'I':
 			result = 1;
 			break;
-
 		case 'S':
 			result = 2;
 			break;
@@ -98,15 +111,17 @@ uint8_t display_get_letter_idx(char c){
 		case 'm':
 			result = 4;
 			break;
+    case 'O':
+      result = 5;
+      break;
 	};
 	return result;
 
 }
 
 void display_set_letters(char char1, char char2){
-	const bool* display1_values = SEGMENT_LETTERS[display_get_letter_idx(char1)];
-	const bool* display2_values = SEGMENT_LETTERS[display_get_letter_idx(char2)];
-	display_show(display1_values, display2_values);
+	display_1 = SEGMENT_LETTERS[display_get_letter_idx(char1)];
+	display_2 = SEGMENT_LETTERS[display_get_letter_idx(char2)];
 }
 
 
@@ -135,17 +150,13 @@ void display_show_drive_time(){
 	//Wanneer er meer dan 99 seconden zijn tonen we het aantal minuten.
 	if(digits > 2){
 		temp_time /= 60;
-		const bool* display1_values = SEGMENT_NUMERIC[temp_time % 10];
-		const bool* display2_values = SEGMENT_LETTERS[display_get_letter_idx('m')];
-		display_show(display1_values, display2_values);
+		display_1 = SEGMENT_NUMERIC[temp_time % 10];
+		display_2 = SEGMENT_LETTERS[display_get_letter_idx('m')];
 	}else{
-		const bool* display2_values = SEGMENT_NUMERIC[temp_time % 10];
+		display_2 = SEGMENT_NUMERIC[temp_time % 10];
 		temp_time /= 10;
-		const bool* display1_values = SEGMENT_NUMERIC[temp_time % 10];
-		display_show(display1_values, display2_values);
+		display_1 = SEGMENT_NUMERIC[temp_time % 10];
 	}
-
-
 }
 
 void display_line_num(uint8_t value){
@@ -153,11 +164,8 @@ void display_line_num(uint8_t value){
 		display_set_digits(value, 0);
 	}else{
 		uint8_t temp_value = value;
-		const bool* display2_values = SEGMENT_NUMERIC[temp_value % 10];
+		display_2 = SEGMENT_NUMERIC[temp_value % 10];
 		temp_value /= 10;
-		const bool* display1_values = SEGMENT_NUMERIC[temp_value % 10];
-		display_show(display1_values, display2_values);
-
+		display_1 = SEGMENT_NUMERIC[temp_value % 10];
 	}
-
 }
