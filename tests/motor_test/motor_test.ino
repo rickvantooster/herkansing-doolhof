@@ -106,12 +106,12 @@ bool in_array(uint8_t* arr, uint8_t value, size_t n){
 const uint8_t VALUE_POSSIBLE_FINISH = 0b00000;
 
 
-const uint32_t LINE_SENSOR_PINS[5] = {A2, A3, A4, A5, 0};
+const uint32_t LINE_SENSOR_PINS[5] = {A2, A3, A4, A5};
 const uint32_t PING_ECHO = A1;
 const uint32_t PING_TRIGGER = A0;
 
 void linsensor_init(){
-	for(size_t i = 0; i < 5; i++){
+	for(size_t i = 0; i < 4; i++){
 		pinMode(LINE_SENSOR_PINS[i], INPUT);
 	}
 
@@ -119,8 +119,8 @@ void linsensor_init(){
 
 uint8_t get_line_sensor(){
 	uint8_t result = 0;
-	uint8_t idx = 4;
-	for(size_t i = 0; i < 5; i++){
+	uint8_t idx = 3;
+	for(size_t i = 0; i < 4; i++){
 		result |= ((uint8_t)digitalRead(LINE_SENSOR_PINS[i]) << idx);
 		idx--;
 
@@ -194,7 +194,8 @@ uint32_t turn_start = 0;
 const uint32_t TURN_DURATION = 2000;
 
 void setup() {
-	motors_init();
+	//motors_init();
+	Serial.begin(9600);
 	//segment_display_init();
 	linsensor_init();
 
@@ -205,63 +206,9 @@ void loop() {
 	//right();
 
 	uint8_t line = get_line_sensor();
-	if(line == VALUE_POSSIBLE_FINISH){
-		forward();
-
-	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
-		right();
-		//right();
-
-	}else if(in_array(VALUES_FORWARD, line, SIZEOF_ARRAY(VALUES_FORWARD))){
-		forward();
-
-	}else if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
-		left();
-
-	}else{
-		stop();
-
-	}
-
-
-	/*
-	if(phase != DONE){
-		display_show(SEGMENT_LETTERS[phase], NULL);
-	}else{
-		display_show(SEGMENT_LETTERS[0], NULL);
-	}
-	if(phase == FORWARD){
-		forward();
-		Serial.println("forward");
-		phase = RIGHT;
-		delay(1500);
-		turn_start = millis();
-	}else if(phase == RIGHT){
-		Serial.println("RIGHT");
-		right();
-		if((millis() - turn_start) >= TURN_DURATION){
-			phase = DONE;
-
-		}
-	}else if(phase == BACKWARD){
-		Serial.println("BACK");
-		backward();
-		phase = LEFT;
-		delay(1500);
-		turn_start = millis();
-	}else if(phase == LEFT){
-		Serial.println("LEFT");
-		left();
-		if((millis() - turn_start) >= TURN_DURATION){
-			phase = DONE;
-
-		}
-
-	}else if(phase == DONE){
-		stop();
-
-	}
-	*/
+	Serial.println(line, BIN);
+	delay(1000);
+	
 
 
 }

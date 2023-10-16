@@ -10,8 +10,8 @@
 
 const bool ROTATE_CLOCKWISE = false;
 const bool ROTATE_COUNTER_CLOCKWISE = true;
-const int SPEED = 40; //exact value tbd later
-const int TURN_SPEED = 30; //exact value tbd later
+const int SPEED = 30; //exact value tbd later
+const int TURN_SPEED = 45; //exact value tbd later
 
 
 /*
@@ -29,27 +29,24 @@ const uint32_t SPEED_RIGHT = 3;
 * waardes voor de lijn sensoren gegroepeerd op actie.
 */
 
+
 const uint8_t VALUES_FORWARD[] = {
-	0b00011, // 3
-	0b01011, // 11
-	0b11010, // 26
-	0b11011, //16+8+2+1 = 27
-};
+	0b11011,
+	0b00011,
 
-const uint8_t VALUES_LEFT[] = {
-	//0b00001, // 1
-	0b00010, // 2
-	0b10010, // 18
-	0b10011, // 19
 };
-
 const uint8_t VALUES_RIGHT[] = {
-	0b01000, //8
-	//0b01001, //9
-	0b10000, //16
-	//0b10001, //17
-	0b11000, //24
-	//0b11001, //25
+	0b11000,
+	0b11001,
+	0b11100,
+	0b11101,
+	//0b11110 //TODO: testen zonder deze waarde
+};
+const uint8_t VALUES_LEFT[] = {
+	0b10011, 
+	0b10111, 
+	0b00111,
+	//0b01111, //TODO: testen zonder deze waarde
 };
 
 const uint8_t VALUE_POSSIBLE_FINISH = 0b00000;
@@ -88,6 +85,7 @@ void forward(){
   analogWrite(SPEED_LEFT, SPEED);
   digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
   analogWrite(SPEED_RIGHT, SPEED);
+	display_set_digits(3, 0);
 }
 
 void backward(){
@@ -109,11 +107,15 @@ void right(){
 	digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
 	analogWrite(SPEED_LEFT, TURN_SPEED);
 	analogWrite(SPEED_RIGHT, 0);
+	 //&& line != 0b00000
+	 /*
 	uint8_t line = get_line_sensor();
-	while(line != 0b11011 && line != 0b00000){
+
+	while(line != 0b11011){
 		line = get_line_sensor();
 
 	}
+	*/
 
 
 }
@@ -123,23 +125,27 @@ void left(){
 	digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
 	analogWrite(SPEED_LEFT, 0);
 	analogWrite(SPEED_RIGHT, TURN_SPEED);
+	display_set_digits(1, 0);
 	while(get_line_sensor() != 0b11011);
 
 }
 void uturn(){
-	  digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
-	  digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
-	  analogWrite(SPEED_LEFT, TURN_SPEED);
-	  analogWrite(SPEED_RIGHT, TURN_SPEED);
-	while(get_line_sensor() != 0b11011);
+	digitalWrite(MOTOR_LEFT, ROTATE_COUNTER_CLOCKWISE);
+	digitalWrite(MOTOR_RIGHT, ROTATE_COUNTER_CLOCKWISE);
+	analogWrite(SPEED_LEFT, TURN_SPEED);
+	analogWrite(SPEED_RIGHT, TURN_SPEED);
 }
 
   
 bool check_finish(){
-	forward();
+	//forward();
+	delay(400); //TODO: validate travel time and maybe use millis() to be non blocking.
 	if(get_line_sensor() != VALUE_POSSIBLE_FINISH){
 		backward();
+		delay(300); //TODO: validate travel time
+
 		right();
+		delay(200);
 		return false;
 	}
 	state = FINISH_BLINK;
@@ -186,18 +192,15 @@ void state_driving(){
 	uint32_t distance = ping_distance();
 	uint8_t line = get_line_sensor();
 	display_line_num(line);
-	//(distance > 0 && distance <= 16) || 
 	if((distance > 0 && distance <= 16) || line == VALUE_UTURN){
 		uturn();
 	}else if(line == VALUE_POSSIBLE_FINISH){
-		//if(check_finish()){
-			//stop();
-			//return;
+		if(check_finish()){
+			state = FINISH_BLINK;
+			stop();
+			return;
 
-		//}
-		state = FINISH_BLINK;
-		stop();
-		return;
+		}
 	}else if(in_array(VALUES_RIGHT, line, SIZEOF_ARRAY(VALUES_RIGHT))){
 		right();
 
@@ -207,8 +210,6 @@ void state_driving(){
 	}else  if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
 		left();
 	}
-	//forward();
-
 }
 
 void state_finish_blinking(){
@@ -235,9 +236,8 @@ void state_finish(){
 
 
 void setup() {
-	//Serial.begin(9600);
 	linsensor_init();
-	segment_display_init();
+	//segment_display_init();
 	motors_init();
 	state = PRE_DRIVING;
 }
