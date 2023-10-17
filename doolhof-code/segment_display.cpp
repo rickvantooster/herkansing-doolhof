@@ -51,18 +51,18 @@ void display_show(bool* segments){
 }
 
 void display_control(){
-  if(millis() >= display_timer + 5){
+  if(millis() >= display_timer + 10){
     if(current_display == 1){
+      display_show(display_2);
       digitalWrite(SEGMENT_U1, LOW);
       digitalWrite(SEGMENT_U2, HIGH);
-      display_show(display_2);
       current_display = 2;
       display_timer = millis();
     }else{
       if(current_display == 2){
+        display_show(display_1);
         digitalWrite(SEGMENT_U1, HIGH);
         digitalWrite(SEGMENT_U2, LOW);
-        display_show(display_1);
         current_display = 1;
         display_timer = millis();
       }
@@ -119,7 +119,7 @@ uint8_t display_get_letter_idx(char c){
 
 }
 
-void display_set_letters(char char1, char char2){
+void display_set_letters(char char2, char char1){
 	display_1 = SEGMENT_LETTERS[display_get_letter_idx(char1)];
 	display_2 = SEGMENT_LETTERS[display_get_letter_idx(char2)];
 }
@@ -150,12 +150,12 @@ void display_show_drive_time(){
 	//Wanneer er meer dan 99 seconden zijn tonen we het aantal minuten.
 	if(digits > 2){
 		temp_time /= 60;
-		display_1 = SEGMENT_NUMERIC[temp_time % 10];
-		display_2 = SEGMENT_LETTERS[display_get_letter_idx('m')];
-	}else{
 		display_2 = SEGMENT_NUMERIC[temp_time % 10];
-		temp_time /= 10;
+		display_1 = SEGMENT_LETTERS[display_get_letter_idx('m')];
+	}else{
 		display_1 = SEGMENT_NUMERIC[temp_time % 10];
+		temp_time /= 10;
+		display_2 = SEGMENT_NUMERIC[temp_time % 10];
 	}
 }
 

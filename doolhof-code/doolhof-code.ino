@@ -10,8 +10,8 @@
 
 const bool ROTATE_CLOCKWISE = false;
 const bool ROTATE_COUNTER_CLOCKWISE = true;
-const int SPEED = 75; //exact value tbd later
-const int TURN_SPEED = 70; //exact value tbd later
+const int SPEED = 50; //exact value tbd later
+const int TURN_SPEED = 50; //exact value tbd later
 const int CHECK_FINISH_SPEED = 20;
 
 
@@ -86,7 +86,6 @@ void forward(){
   analogWrite(SPEED_LEFT, SPEED);
   digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
   analogWrite(SPEED_RIGHT, SPEED);
-	display_set_digits(3, 0);
 }
 
 void backward(){
@@ -117,7 +116,6 @@ void left(){
 	digitalWrite(MOTOR_RIGHT, ROTATE_CLOCKWISE);
 	analogWrite(SPEED_LEFT, 0);
 	analogWrite(SPEED_RIGHT, TURN_SPEED);
-	display_set_digits(1, 0);
 	while(get_line_sensor() != 0b11011);
 
 }
@@ -131,6 +129,7 @@ void uturn(){
   
 bool check_finish(){
 	stop();
+	delay(100);
 	forward();
 	delay(150); 
 	stop();
@@ -156,7 +155,7 @@ bool check_finish(){
 void state_startup_count(){
 	static uint8_t countdown_val = 10;
 	if(countdown_val == 10){
-		display_set_digits(1, 0);
+		display_set_digits(0, 1);
 		countdown_time = millis();
 		countdown_val--;
 	}
@@ -179,6 +178,7 @@ void state_pre_driving(){
 	if(millis() - countdown_time >= 1000){
 		state = DRIVING;
 		start_time_driving = millis();
+		display_clear();
 	}
 
 }
@@ -186,8 +186,10 @@ void state_pre_driving(){
 void state_driving(){
 	uint32_t distance = ping_distance();
 	uint8_t line = get_line_sensor();
-	display_line_num(line);
-	if((distance > 0 && distance <= 16) || line == VALUE_UTURN){
+	if(distance > 0 && distance <= 16){
+		uturn();
+		delay(500);
+	}else if(line == VALUE_UTURN){
 		uturn();
 	}else if(line == VALUE_POSSIBLE_FINISH){
 		if(check_finish()){
@@ -205,12 +207,13 @@ void state_driving(){
 	}else  if(in_array(VALUES_LEFT, line, SIZEOF_ARRAY(VALUES_LEFT))){
 		left();
 	}
+	display_show_drive_time();
 }
 
 void state_finish_blinking(){
 	if(millis() - countdown_time >= 1000){
 		if(finish_blink_remaining % 2 == 0){
-			//TODO: display clearen.
+			display_clear();
 			if(finish_blink_remaining == 0){
 				state = FINISH;
 			}
@@ -232,9 +235,9 @@ void state_finish(){
 
 void setup() {
 	linsensor_init();
-	//segment_display_init();
+	segment_display_init();
 	motors_init();
-	state = PRE_DRIVING;
+	state = STARTUP_COUNTDOWN;
 }
 
 
